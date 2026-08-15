@@ -36,6 +36,8 @@ Configure your preferred Pi provider and select DeepSeek V4 Pro before starting 
 
 Progressive mode is enabled by default. The first ordinary interactive message is queued behind an anchor turn; slash commands, resumed sessions, RPC, and print-mode requests are not intercepted.
 
+The anchor itself travels through Pi's normal transformed-input path. Only after Pi reports that the anchor agent run has started does the extension queue the original task as a followUp. This intentionally avoids issuing two competing user-message requests from the same input event.
+
 Runtime commands:
 
 ```text
@@ -43,6 +45,7 @@ Runtime commands:
 /dsh-mode off          restore native Pi behaviour and tools
 /dsh-mode               show the active mode
 /dsh ...                alias for /dsh-mode
+/dsh-status             show the controlled phase and active tools
 /dsh-mode c2            legacy alias for progressive
 ```
 

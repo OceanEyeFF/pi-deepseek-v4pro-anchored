@@ -166,6 +166,7 @@ function loadAnchored(env) {
 		setActiveTools(names) { active.length = 0; active.push(...names); },
 		sendUserMessage(msg, opts) { sent.push({ kind: "user", msg, opts }); },
 		sendMessage(msg, opts) { sent.push({ kind: "custom", msg, opts }); },
+		getActiveTools() { return [...active]; },
 		getAllTools() { return Object.entries(tools).map(([name, d]) => ({ name, description: d.description })); },
 	};
 	anchoredFactory(pi);
@@ -248,16 +249,18 @@ console.assert(JSON.stringify(a3.active) === JSON.stringify(["bash", "str_replac
 a3.handlers.tool_execution_start[0]({ toolName: "bash" }, ectx([]));
 console.assert(a3.active.includes("dev_tool_search"), "promoteOn=tool-call: tool promotes");
 
-// 8h. zero 锚定轮: 首条真实消息前插入零工具请求, 真实消息 followUp 排队
+// 8h. zero 锚定轮: 变换首条输入；agent_start 后才安全 followUp 真实任务
 const a4 = loadAnchored({ DSH_ANCHOR_TURN: "zero" });
 const inp = a4.handlers.input[0];
 const rIn = inp({ text: "做任务", source: "interactive" }, ectx([]));
-console.assert(rIn?.action === "handled" && a4.active.length === 0, "anchor: handled + zero tools");
-console.assert(a4.sent.length === 2 && a4.sent[0].msg === "This round is a test. Tools are not open yet; all tools will open next round." && a4.sent[1].opts?.deliverAs === "followUp" && a4.sent[1].msg === "做任务", "anchor: messages queued");
+console.assert(rIn?.action === "transform" && rIn.text === "This round is a test. Tools are not open yet; all tools will open next round." && a4.active.length === 0, "anchor: transform + zero tools");
+console.assert(a4.sent.length === 0, "anchor: no competing prompt is sent during input");
+a4.handlers.agent_start[0]({}, ectx([]));
+console.assert(a4.sent.length === 1 && a4.sent[0].opts?.deliverAs === "followUp" && a4.sent[0].msg === "做任务", "anchor: real task queued after agent start");
 const rIn2 = inp({ text: "二次消息", source: "interactive" }, ectx([
 	{ type: "message", id: "m1", message: { role: "user", content: [] } },
 ]));
-console.assert(rIn2 === undefined && a4.sent.length === 2, "anchor: non-fresh session untouched");
+console.assert(rIn2 === undefined && a4.sent.length === 1, "anchor: non-fresh session untouched");
 
 // 8i. skill_search / skill_load
 const sk = a1.tools.skill_search;
@@ -315,32 +318,32 @@ zc1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromp
 zc1.handlers.turn_end[0]({ message: { role: "assistant" } }, ectx([]));
 console.assert(zc1.active.includes("dev_tool_search") && zc1.sent.length === 0, "c2 silent promotion: resident set, no message");
 
-// 9b. 锚定轮拦截 / anchor interception: interactive + fresh → handled + 锚定消息 + followUp
+// 9b. 锚定轮拦截 / anchor interception: interactive + fresh → transform + agent_start followUp
 const zc2 = loadC2({});
 const zinp = zc2.handlers.input[0];
 const zq1 = zinp({ text: "做任务", source: "interactive", images: [{ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAA" } }] }, ectx([]));
-console.assert(zq1?.action === "handled" && zc2.sent.length === 2, "c2 anchor intercept");
-console.assert(zc2.sent[0].kind === "user" && zc2.sent[0].msg.includes("介绍一下你自己"), "c2 anchor text");
-console.assert(zc2.sent[1].opts?.deliverAs === "followUp" && zc2.sent[1].msg[0].text === "做任务" && zc2.sent[1].msg[1].type === "image", "c2 followUp with images");
+console.assert(zq1?.action === "transform" && zq1.text.includes("介绍一下你自己") && zc2.sent.length === 0, "c2 anchor transform");
 console.assert(JSON.stringify(zc2.active) === JSON.stringify(["bash", "str_replace_editor"]), "c2 anchor keeps minimal catalog");
+zc2.handlers.agent_start[0]({}, ectx([]));
+console.assert(zc2.sent.length === 1 && zc2.sent[0].opts?.deliverAs === "followUp" && zc2.sent[0].msg[0].text === "做任务" && zc2.sent[0].msg[1].type === "image", "c2 followUp with images");
 
 // 9b-1. 新名称 DSH_ANCHOR_TEXT 优先；旧名称继续可用
 const zcText = loadC2({ DSH_ANCHOR_TEXT: "渐进模式锚定文案" });
-zcText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
-console.assert(zcText.sent[0].msg === "渐进模式锚定文案", "progressive anchor text");
+const zcTextInput = zcText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
+console.assert(zcTextInput?.action === "transform" && zcTextInput.text === "渐进模式锚定文案", "progressive anchor text");
 const zcLegacyText = loadC2({ DSH_C2_ANCHOR_TEXT: "legacy anchor text" });
-zcLegacyText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
-console.assert(zcLegacyText.sent[0].msg === "legacy anchor text", "legacy C2 anchor text alias");
+const zcLegacyTextInput = zcLegacyText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
+console.assert(zcLegacyTextInput?.action === "transform" && zcLegacyTextInput.text === "legacy anchor text", "legacy C2 anchor text alias");
 
 // 9c. 非 fresh / rpc / 斜杠命令 → 不锚定
 const zq2 = zinp({ text: "第二条", source: "interactive" }, ectx([
 	{ type: "message", id: "m1", message: { role: "user", content: [] } },
 ]));
-console.assert(zq2 === undefined && zc2.sent.length === 2, "c2 non-fresh untouched");
+console.assert(zq2 === undefined && zc2.sent.length === 1, "c2 non-fresh untouched");
 const zq3 = zinp({ text: "任务", source: "rpc" }, ectx([]));
-console.assert(zq3 === undefined && zc2.sent.length === 2, "c2 rpc untouched");
+console.assert(zq3 === undefined && zc2.sent.length === 1, "c2 rpc untouched");
 const zq4 = zinp({ text: "/skill:foo", source: "interactive" }, ectx([]));
-console.assert(zq4 === undefined && zc2.sent.length === 2, "c2 slash command untouched");
+console.assert(zq4 === undefined && zc2.sent.length === 1, "c2 slash command untouched");
 
 // 9d. DSH_ANCHOR_TURN=zero 时 c2 让步 (不注册 input 拦截)
 const zc3 = loadC2({ DSH_ANCHOR_TURN: "zero" });
@@ -368,6 +371,7 @@ function loadToggle(env) {
 		setActiveTools(names) { active.length = 0; active.push(...names); },
 		sendUserMessage(msg, opts) { sent.push({ kind: "user", msg, opts }); },
 		sendMessage(msg, opts) { sent.push({ kind: "custom", msg, opts }); },
+		getActiveTools() { return [...active]; },
 		getAllTools() { return Object.entries(tools).map(([name, d]) => ({ name, description: d.description })); },
 	};
 	anchoredFactory(pi); // 模拟 dsh-anchored.ts 并排自动加载 (机制注册)
@@ -379,7 +383,7 @@ function loadToggle(env) {
 const tctx = (branch = []) => ({ sessionManager: { getSessionId: () => "s10", getBranch: () => branch }, isIdle: () => false });
 
 const t1 = loadToggle({});
-console.assert(t1.commands["dsh-mode"] && t1.commands["dsh"], "toggle commands registered");
+console.assert(t1.commands["dsh-mode"] && t1.commands["dsh"] && t1.commands["dsh-status"], "toggle commands registered");
 console.assert(t1.commands["dsh-mode"].description.includes("渐进") && t1.commands["dsh-mode"].description.includes("Progressive"), "bilingual progressive command description");
 t1.handlers.session_start[0]({ reason: "startup" }, tctx([]));
 console.assert(t1.active.length === 0, "off: session_start no-op");
@@ -394,11 +398,17 @@ console.assert(offIn === undefined && t1.sent.length === 0, "off: no anchor");
 await t1.commands["dsh-mode"].handler("progressive", { ui: { notify: (m) => t1.notified.push(m) } });
 console.assert(t1.notified.at(-1).includes("渐进") && t1.notified.at(-1).includes("Progressive"), "notify progressive");
 const onIn = t1.handlers.input[0]({ text: "任务", source: "interactive" }, tctx([]));
-console.assert(onIn?.action === "handled" && t1.sent.length === 2 && t1.sent[0].msg.includes("介绍一下你自己") && t1.sent[1].opts?.deliverAs === "followUp", "progressive: anchor intercept");
+console.assert(onIn?.action === "transform" && onIn.text.includes("介绍一下你自己") && t1.sent.length === 0, "progressive: anchor transform");
+t1.handlers.agent_start[0]({}, tctx([]));
+console.assert(t1.sent.length === 1 && t1.sent[0].opts?.deliverAs === "followUp" && t1.sent[0].msg === "任务", "progressive: original task safely queued");
 const onB = t1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromptOptions: { skills: [], contextFiles: [] } });
 console.assert(onB?.systemPrompt === "You are a helpful software engineer assistant.", "progressive: persona active");
 t1.handlers.turn_end[0]({ message: { role: "assistant" } }, tctx([]));
-console.assert(t1.active.includes("dev_tool_search") && t1.sent.length === 2, "progressive: silent promotion (no extra messages)");
+console.assert(t1.active.includes("dev_tool_search") && t1.sent.length === 1, "progressive: silent promotion (no extra messages)");
+
+// 10b-1. /dsh-status reports the real controlled phase and active catalog
+await t1.commands["dsh-status"].handler("", { ...tctx([]), ui: { notify: (m) => t1.notified.push(m) } });
+console.assert(t1.notified.at(-1).includes("promoted") && t1.notified.at(-1).includes("dev_tool_search"), "dsh-status reports phase and tools");
 
 // 10c. 切 off: 恢复全部工具, persona 回到原生
 await t1.commands["dsh"].handler("off", { ui: { notify: (m) => t1.notified.push(m) } });

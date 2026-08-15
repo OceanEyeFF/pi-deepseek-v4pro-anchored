@@ -16,6 +16,7 @@
  *   /dsh-mode off          Restore native Pi and all tools / 恢复原生 Pi 与全部工具
  *   /dsh-mode              Show the current mode / 查看当前模式
  *   /dsh ...               Alias / 别名
+ *   /dsh-status            Show controlled phase and active tools / 查看受控阶段与已激活工具
  *   /dsh-mode c2           Legacy alias for progressive / 渐进模式的旧版兼容别名
  *
  * Environment / 环境变量（启动时默认值）：
@@ -33,7 +34,7 @@
  */
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { registerProgressiveAnchor, setAnchoredEnabled } from "./dsh-anchored.ts";
+import { getAnchoredStatus, registerProgressiveAnchor, setAnchoredEnabled } from "./dsh-anchored.ts";
 
 type Mode = "off" | "progressive";
 
@@ -98,7 +99,44 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			ctx?.ui?.notify?.(
-				`当前 DSH 模式 / Current DSH mode: ${modeLabel(mode)}。用法 / Usage: /dsh-mode progressive|off（c2 为旧版兼容别名 / legacy alias）`,
+				`当前 DSH 模式 / Current DSH mode: ${modeLabel(mode)}。用法 / Usage: /dsh-mode progressive|off（c2 为旧版兼容别名 / legacy alias）；用 /dsh-status 查看阶段和工具 / inspect phase and tools。`,
+				"info",
+			);
+		},
+	};
+
+	const statusCommand = {
+		description: "查看 DSH 当前阶段与已激活工具 / Show the current DSH phase and active tools.",
+		handler: async (_args: string, ctx: ExtensionCommandContext) => {
+			let activeTools: string[] = [];
+			try {
+				activeTools = pi.getActiveTools();
+			} catch {
+				/* unavailable only during an abnormal runtime transition */
+			}
+
+			if (mode === "off") {
+				ctx?.ui?.notify?.(
+					"DSH 状态 / DSH status: 关闭 / Off；当前工具目录由原生 Pi 管理 / the native Pi catalog is in control。已激活工具 / active tools: " +
+						(activeTools.join(", ") || "（不可用 / unavailable）") +
+						"。",
+					"info",
+				);
+				return;
+			}
+
+			const status = getAnchoredStatus(ctx);
+			const unlocked = status.unlockedTools.length > 0 ? status.unlockedTools.join(", ") : "无 / none";
+			ctx?.ui?.notify?.(
+				"DSH 状态 / DSH status: 渐进模式 / Progressive mode；阶段 / phase: " +
+					status.phase +
+					"；锚定任务待排队 / anchor task pending: " +
+					(status.pendingAnchorTask ? "是 / yes" : "否 / no") +
+					"；已解锁工具 / unlocked: " +
+					unlocked +
+					"；已激活工具 / active tools: " +
+					(activeTools.join(", ") || "（不可用 / unavailable）") +
+					"。",
 				"info",
 			);
 		},
@@ -106,6 +144,7 @@ export default function (pi: ExtensionAPI) {
 
 	pi.registerCommand("dsh-mode", command);
 	pi.registerCommand("dsh", command);
+	pi.registerCommand("dsh-status", statusCommand);
 
 	// Show the active mode in the status bar / 在状态栏显示当前模式，便于随时确认。
 	pi.on("session_start", (_event, ctx: { ui?: { setStatus?: (id: string, text: string) => void } }) => {

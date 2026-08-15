@@ -185,8 +185,8 @@ DSH_MINIMAL_KICKOFF="..." # 可选: 会话启动即喂入的第一条消息
 
 **工作流**：
 1. 会话启动 = anchored bootstrap：minimal persona + 仅 bash + str_replace_editor
-2. 用户第一条消息被拦截，先注入一条**锚定轮**自介消息（可配 `DSH_C2_ANCHOR_TEXT`），在 minimal 目录下跑完；模型回复即**静默晋升**（不发通告）
-3. 真实消息作为下一轮 followUp 送达——新轮边界 + 已扩展目录（+dev_tool_search/skill_search/skill_load），模型自发发现并解锁所需工具（C2 实验：dev_tool_search×5、web_search×14，无任何通告）
+2. 用户第一条消息被拦截后，会由 Pi 的 input transform 变成**锚定轮**自介消息（可配 `DSH_C2_ANCHOR_TEXT`）；Pi 启动该 agent run 后，插件才以 followUp 安全排队原始任务。锚定轮在 minimal 目录下跑完，模型回复即**静默晋升**（不发通告）
+3. 真实消息作为下一轮 followUp 送达——新轮边界 + 已扩展目录（+dev_tool_search/skill_search/skill_load），模型自发发现并解锁所需工具（C2 实验：dev_tool_search×5、web_search×14，无任何通告）。这不会从同一个 input 事件并发发送两条 user prompt
 
 **机制依据**：工具切换由**轮边界**触发（同轮晋升无效，跨轮自发生效）；通告只是加速剂（D2 44 次搜索 vs C2 14 次，但 C2 成本更低）。
 
@@ -233,7 +233,7 @@ node run-multi.mjs C2 round2b.txt   # initialMessage=锚定文案, messages=[任
 | 技能目录替代 | `skill_search`/`skill_load`（快照 `before_agent_start` 的 `systemPromptOptions.skills`；load 读文件后以 custom message 注入下一请求） |
 | instruction-hint | 晋升后一次性注入"指令文件存在，自行读取"（不嵌入内容），仅一次/会话 |
 | 压缩纪元 | `session_compact` → 回退 `[shell, str_replace_editor, ...compactionTools]`（默认 read,write,edit,find,grep,ls），新晋升信号后恢复驻留集，已解锁保留 |
-| zero/whoami 锚定轮 | `DSH_ANCHOR_TURN=zero\|whoami`：`input` 事件拦截首条真实消息，先插零工具锚定请求（"This round is a test…" / "你是谁"），真实消息 followUp 排队 |
+| zero/whoami 锚定轮 | `DSH_ANCHOR_TURN=zero\|whoami`：`input` transform 将首条真实消息改为零工具锚定请求（"This round is a test…" / "你是谁"）；`agent_start` 后才把真实消息 followUp 排队，避免并发 prompt |
 | 降级保护 | 缺 bootstrap 工具/过滤失败 → 警告一次并保持当前目录，绝不 brick 会话 |
 
 ### 用法

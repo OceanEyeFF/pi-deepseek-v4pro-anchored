@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-08-16
+
+- Fixes the Progressive-mode first-turn race: Pi now transforms the initial input into the anchor turn and queues the original task only after the anchor agent run starts.
+- Applies the same safe ordering to the optional zero/whoami anchor variants.
+- Adds /dsh-status with Chinese-English phase and active-tool diagnostics, plus documentation of the actual queueing behaviour.
+
 ## 0.1.1 - 2026-08-15
 
 - Renames the package-facing C2 workflow to **Progressive mode / 渐进模式**.

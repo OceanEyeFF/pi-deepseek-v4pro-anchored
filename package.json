@@ -1,6 +1,6 @@
 {
   "name": "pi-deepseek-v4pro-anchored",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Pi package with a progressive, anchored tool workflow for DeepSeek V4 Pro.",
   "type": "module",
   "license": "MIT",

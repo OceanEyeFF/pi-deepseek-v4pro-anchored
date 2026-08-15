@@ -24,7 +24,7 @@
  *   compaction/end 纪元边界              → session_compact 事件 + 条目扫描
  *   dev_tool_search / skill_search       → 自定义工具 (pi.getAllTools /
  *                                             before_agent_start 的 skills 快照)
- *   agent/inbox/inserted 锚定轮          → input 事件拦截 + sendUserMessage
+ *   agent/inbox/inserted 锚定轮          → input transform + agent_start followUp 队列
  *   instruction-hint                     → 晋升后一次性 pi.sendMessage 提示
  *
  * 配置 (环境变量, /reload 生效):
@@ -45,7 +45,7 @@
  *   # 或复制到 ~/.pi/agent/extensions/dsh-anchored.ts (全局自动加载)
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, InputEvent } from "@earendil-works/pi-coding-agent";
 import { createBashTool, withFileMutationQueue } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
@@ -119,12 +119,18 @@ const undoHistory = new Map<string, string[]>();
 let skillsSnapshot: Array<{ name: string; description: string; filePath: string }> = [];
 let contextFilePaths: string[] = [];
 
+interface PendingAnchorTask {
+	text: string;
+	images: InputEvent["images"];
+}
+
 // sessionId -> phase state
 interface PhaseState {
 	boundaryId: string | null; // 最近一次 compaction 条目 id (纪元边界)
 	promoted: boolean;
 	hinted: boolean; // instruction-hint 已注入一次
 	unlocked: Set<string>; // dev_tool_search 显式解锁的工具
+	pendingAnchorTask: PendingAnchorTask | null; // 已变换为锚定轮、等待安全排队的原始任务
 }
 const phases = new Map<string, PhaseState>();
 
@@ -137,10 +143,45 @@ function stateFor(ctx: { sessionManager?: { getSessionId?: () => string } }): Ph
 	}
 	let s = phases.get(id);
 	if (!s) {
-		s = { boundaryId: null, promoted: false, hinted: false, unlocked: new Set() };
+		s = { boundaryId: null, promoted: false, hinted: false, unlocked: new Set(), pendingAnchorTask: null };
 		phases.set(id, s);
 	}
 	return s;
+}
+
+export type AnchoredPhase = "bootstrap" | "anchoring" | "promoted" | "post-compaction";
+
+export interface AnchoredStatus {
+	phase: AnchoredPhase;
+	pendingAnchorTask: boolean;
+	unlockedTools: string[];
+}
+
+/** 获取当前受控阶段，供 dsh-toggle 的状态命令使用。 */
+export function getAnchoredStatus(ctx: { sessionManager?: { getSessionId?: () => string } }): AnchoredStatus {
+	const state = stateFor(ctx);
+	return {
+		phase: state.pendingAnchorTask !== null ? "anchoring" : state.promoted ? "promoted" : state.boundaryId !== null ? "post-compaction" : "bootstrap",
+		pendingAnchorTask: state.pendingAnchorTask !== null,
+		unlockedTools: [...state.unlocked].sort(),
+	};
+}
+
+/**
+ * Pi 先通过正常输入管线提交锚定轮，再在 agent 已启动后用 followUp 排队原始任务。
+ * This deliberately avoids two competing sendUserMessage calls from one input event.
+ */
+function queuePendingAnchorTask(pi: ExtensionAPI, ctx: { sessionManager?: { getSessionId?: () => string } }) {
+	const state = stateFor(ctx);
+	const pending = state.pendingAnchorTask;
+	if (!pending) return;
+
+	state.pendingAnchorTask = null;
+	const content =
+		pending.images && pending.images.length > 0
+			? [{ type: "text" as const, text: pending.text }, ...pending.images]
+			: pending.text;
+	pi.sendUserMessage(content, { deliverAs: "followUp" });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -372,6 +413,7 @@ export default function (pi: ExtensionAPI) {
 		state.promoted = false;
 		state.hinted = false;
 		state.unlocked = new Set();
+		state.pendingAnchorTask = null;
 		try {
 			const entries = sessionManager?.getBranch?.() ?? [];
 			for (const entry of entries) {
@@ -458,16 +500,20 @@ export default function (pi: ExtensionAPI) {
 		activate(postCompactionTools());
 	});
 
-	// ── 锚定轮 (zero / whoami 变体): 首条真实消息前插入零工具锚定请求 ──
+	// ── 锚定轮 (zero / whoami 变体): transform 首条输入；agent_start 后安全 followUp 原任务 ──
 	if (anchorText !== null) {
 		pi.on("input", (event, ctx) => {
 			if (!anchoredEnabled) return;
 			if (event.source === "extension") return; // 不重新锚定自己注入的消息
 			if (!isFreshSession(ctx.sessionManager as never)) return;
 			activate([]); // 零工具面
-			pi.sendUserMessage(anchorText!); // 锚定请求 (首请求)
-			pi.sendUserMessage(event.text, { deliverAs: "followUp" }); // 真实消息排队, 锚定轮完成后随驻留集运行
-			return { action: "handled" };
+			const state = stateFor(ctx);
+			state.pendingAnchorTask = { text: event.text, images: event.images ? [...event.images] : undefined };
+			return { action: "transform", text: anchorText! };
+		});
+
+		pi.on("agent_start", (_event, ctx) => {
+			queuePendingAnchorTask(pi, ctx);
 		});
 	}
 
@@ -815,7 +861,7 @@ export default function (pi: ExtensionAPI) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Progressive-mode anchor interception / 渐进模式锚定轮拦截（供 dsh-toggle 使用）：
-// 在首条真实输入前插入 minimal 目录锚定轮，再把真实消息作为 followUp 发送到下一轮。
+// 将首条真实输入变换为 minimal 目录锚定轮；Pi 启动该轮后才把原消息安全排为 followUp。
 // The experiment called this sequence “C2”; that label is retained only for
 // compatibility. / 实验曾将该序列记为“C2”；该名称仅为兼容保留。
 // ─────────────────────────────────────────────────────────────────────────────
@@ -872,19 +918,17 @@ export function registerProgressiveAnchor(pi: ExtensionAPI, isEnabled: () => boo
 			/* bootstrap 已生效则无需处理 */
 		}
 
-		// 2) Run the anchor turn first / 先执行锚定轮：触发一轮 minimal 对话，首个回复后静默晋升。
-		pi.sendUserMessage(getProgressiveAnchorText());
+		// 2) Let Pi submit the anchor normally / 让 Pi 正常提交锚定轮：先保存原始任务，
+		//    用 transform 让当前输入成为锚定轮。这样不会从一个 input 处理器并发发两条 prompt。
+		const state = stateFor(ctx);
+		state.pendingAnchorTask = { text: event.text, images: event.images ? [...event.images] : undefined };
+		return { action: "transform", text: getProgressiveAnchorText() };
+	});
 
-		// 3) Queue the real task for the next turn / 将真实消息排队到下一轮：保留图片附件，
-		//    任务在新轮边界与已扩展目录下执行。
-		const content =
-			event.images && event.images.length > 0
-						? [{ type: "text" as const, text: event.text }, ...event.images]
-				: event.text;
-		pi.sendUserMessage(content, { deliverAs: "followUp" });
-
-		// 原始输入已被接管, 不再重复执行
-		return { action: "handled" };
+	// 3) Queue only after Pi has started the transformed anchor / 仅在 Pi 已启动变换后的锚定轮后排队。
+	// followUp stays behind the complete anchor agent run, including any tool sub-turns.
+	pi.on("agent_start", (_event, ctx) => {
+		queuePendingAnchorTask(pi, ctx);
 	});
 }
 
