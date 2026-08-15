@@ -1,0 +1,1 @@
+更新通告：你的可用工具集刚刚扩展了。现在除了 bash 和 str_replace_editor，你还新增了三个工具：dev_tool_search（搜索完整工具目录并按需解锁工具）、skill_search（按关键词搜索可用技能）、skill_load（加载某个技能的完整说明）。通过 dev_tool_search 你可以解锁 web_search、fetch_content、todo、read、write、edit 等更多工具，解锁后从下一个请求起即可使用。

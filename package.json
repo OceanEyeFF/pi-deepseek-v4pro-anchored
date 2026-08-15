@@ -1,0 +1,62 @@
+{
+  "name": "pi-deepseek-v4pro-anchored",
+  "version": "0.1.0",
+  "description": "A Pi package that applies a DSH-style C2 tool-schema workflow for DeepSeek V4 Pro.",
+  "type": "module",
+  "license": "MIT",
+  "author": "pi-deepseek-v4pro-anchored contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OceanEyeFF/pi-deepseek-v4pro-anchored.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OceanEyeFF/pi-deepseek-v4pro-anchored/issues"
+  },
+  "homepage": "https://github.com/OceanEyeFF/pi-deepseek-v4pro-anchored#readme",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "deepseek",
+    "deepseek-v4-pro",
+    "agent-harness",
+    "dsh"
+  ],
+  "files": [
+    "dsh-plugin/index.ts",
+    "dsh-plugin/dsh-anchored.ts",
+    "dsh-plugin/dsh-toggle.ts",
+    "!dsh-plugin/README.md",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "pi": {
+    "extensions": [
+      "./dsh-plugin/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "0.84.2",
+    "@earendil-works/pi-coding-agent": "0.84.2",
+    "@types/node": "24.12.4",
+    "jiti": "2.7.0",
+    "typebox": "1.3.7",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "node dsh-plugin/smoke.mjs",
+    "typecheck": "tsc --noEmit",
+    "pack:check": "npm pack --dry-run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run pack:check"
+  }
+}

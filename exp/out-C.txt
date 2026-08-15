@@ -1,0 +1,232 @@
+# OpenAI 各产品线模型发展史综述
+
+> 说明：本文按“模型与产品线”梳理 OpenAI 从 2018 年到 **2026 年 8 月 15 日** 的主要模型节点，综合 OpenAI 官方文档、官方发布页、公开论文及维基百科等资料核实年份、版本号与关键能力。OpenAI 自 GPT-4 起不再公开参数规模、训练细节等敏感信息，因此部分技术细节以官方披露为准。
+
+---
+
+## 一、总体脉络
+
+OpenAI 的模型发展大致可分为六个阶段：
+
+1. **预训练语言模型阶段（2018—2020）**：GPT-1 → GPT-2 → GPT-3，核心思路是“更大的 Transformer + 更多数据 + 生成式预训练”。
+2. **对齐与产品化阶段（2021—2022）**：InstructGPT 引入 RLHF，Codex 进入代码领域，ChatGPT 让 GPT-3.5 成为大众产品。
+3. **GPT-4 与多模态起步阶段（2023）**：GPT-4 原生支持图像输入；GPT-4 Turbo、DALL·E 3、Whisper API、TTS API 相继上线。
+4. **全模态与推理模型并行的阶段（2024）**：GPT-4o 统一文本/视觉/音频；o1 系列开启“测试时思考”的推理模型路线。
+5. **统一与智能体阶段（2025）**：GPT-5 把 GPT 系列与 o 系列整合进同一体系；Responses API、Agents SDK、Codex CLI、Realtime API 等让模型走向智能体与实时交互。
+6. **快速迭代的 GPT-5.x 阶段（2025 末—2026）**：GPT-5.1 → 5.2 → 5.3 → 5.4 → 5.5 → 5.6 快速演进，推理强度、长上下文、工具调用和多模态能力持续升级。
+
+---
+
+## 二、GPT 系列语言模型
+
+### 2.1 奠基时期：GPT-1 / GPT-2 / GPT-3
+
+- **GPT-1（2018 年 6 月）**：论文 *Improving Language Understanding by Generative Pre-Training* 提出生成式预训练 Transformer。GPT-1 为 12 层 decoder-only Transformer，**1.17 亿参数**，先在 BooksCorpus 上做无监督语言建模，再针对具体任务微调。
+- **GPT-2（2019 年 2—11 月）**：2019 年 2 月 14 日公布，参数量与训练数据规模约为 GPT-1 的十倍。因担心滥用，OpenAI 采取分阶段发布：2019 年 8 月放出 7.74 亿参数版本，**2019 年 11 月 5 日完整放出 15 亿参数版本**。GPT-2 的 WebText 数据集与零样本能力是后续“规模定律”路线的重要节点。
+- **GPT-3（2020 年 5—6 月）**：**1750 亿参数**，上下文窗口 2048 token。论文展示了少样本（few-shot）学习能力，成为“提示词工程”时代的起点。2020 年 6 月 11 日，OpenAI 基于 GPT-3 发布 **OpenAI API 私测版**，提供 ada、babbage、curie、davinci 四个档位；2021 年 11 月取消候补名单。
+
+### 2.2 对齐与 ChatGPT 时代：InstructGPT、GPT-3.5
+
+- **InstructGPT（2022 年 1 月）**：2022 年 1 月 27 日起成为 API 默认模型。它使用监督微调（SFT）+ 奖励模型 + 强化学习（PPO），显著改善指令遵循、减少编造和有害输出，是 RLHF 产品化的里程碑。
+- **Codex（模型，2021 年 8 月）**：GPT-3 在公开代码数据上微调的代码模型，驱动 GitHub Copilot 与早期 Codex API；相关 API 模型于 2023 年 3 月退役。
+- **GPT-3.5 系列（2022 年）**：2022 年 3 月发布 `text-davinci-002`/`code-davinci-002`，2022 年 11 月发布 `text-davinci-003`；2022 年 11 月 30 日随 **ChatGPT** 发布被统称为 GPT-3.5 系列。
+- **ChatGPT（2022 年 11 月 30 日）**：基于 GPT-3.5 进行对话微调和 RLHF，两个月内达到 1 亿月活，是生成式 AI 大众化的标志。
+- **gpt-3.5-turbo API（2023 年 3 月 1 日）**：ChatGPT 同源模型以约 1/10 的价格进入 API，成为很长一段时间内“便宜、够用”的默认选项。
+
+### 2.3 GPT-4 时代（2023—2024）
+
+- **GPT-4（2023 年 3 月 14 日）**：OpenAI 首个大规模多模态大模型，**接受文本和图像输入、输出文本**。默认上下文 8192 token，另有 32768 token 版本。官方未公布参数规模。API 先以候补名单开放，**2023 年 7 月 6 日全面开放**。
+- **函数调用（2023 年 6 月 13 日）**：`gpt-4-0613` 与 `gpt-3.5-turbo-0613` 引入 function calling，是智能体/工具调用的重要节点。
+- **GPT-4 Turbo（2023 年 11 月 6 日，DevDay）**：`gpt-4-1106-preview` 提供 **128K 上下文**、更新的知识截止、JSON 模式、并行函数调用和更低价格；同时发布 **GPT-4 Turbo with Vision**（API 中为 `gpt-4-vision-preview`）。
+- **GPT-4 Turbo 合并视觉（2024 年 4 月 9 日）**：`gpt-4-turbo-2024-04-09` 将视觉输入并入标准 `gpt-4-turbo`。
+
+### 2.4 GPT-4o / GPT-4.1 / GPT-4.5
+
+- **GPT-4o（2024 年 5 月 13 日）**：“o”代表 omni。单个模型端到端处理**文本、图像、音频**，语音响应最短约 232 毫秒、平均 320 毫秒；多语言能力大幅提升，API 价格约为 GPT-4 Turbo 的一半。发布初期开放文本/图像输入与文本输出，音频能力随后逐步上线。
+- **GPT-4o mini（2024 年 7 月 18 日）**：低成本小模型，128K 上下文，输入 $0.15/百万 token、输出 $0.60/百万 token，在 ChatGPT 中替代 GPT-3.5。
+- **GPT-4.5（2025 年 2 月 27 日，代号 Orion）**：以无监督预训练为主的“超大”模型，强调情商、共情与创作能力，但**没有内置长思维链推理**。API 定价极高（输入 $75/百万、输出 $150/百万 token），2025 年 7 月退出 API 预览，之后在 ChatGPT 中长期作为旧版保留。
+- **GPT-4.1 家族（2025 年 4 月 14 日）**：API 优先发布的 `gpt-4.1`、`gpt-4.1-mini`、`gpt-4.1-nano`，上下文拉到 **约 100 万 token**，强化指令遵循、代码、长文档与工具调用，并支持监督微调。
+
+### 2.5 GPT-5 统一时代与 GPT-5.x 迭代（2025—2026）
+
+- **GPT-OSS（2025 年 8 月 5 日）**：OpenAI 罕见的开源权重模型，发布 `gpt-oss-120b`（带推理）与 `gpt-oss-20b`。
+- **GPT-5（2025 年 8 月 7 日）**：ChatGPT 与 API 同日发布。ChatGPT 中的 GPT-5 是“推理模型 + 非推理模型 + 路由器”组成的系统，API 提供 `gpt-5`、`gpt-5-mini`、`gpt-5-nano` 三档；支持可调推理强度（minimal/low/medium/high），上下文约 40 万 token。它在代码、智能体工具调用和长任务上成为新的基准。
+- **GPT-5 Pro（2025 年 10 月 6 日）**：更高计算量的“深度思考”版本，主要面向 Responses API。
+- **GPT-5-Codex（2025 年 9 月 23 日）**：面向 Codex CLI/云编程智能体的专用版本，此后 Codex 系列跟随 GPT-5.x 持续更新。
+
+| 版本 | 发布时间（API） | 关键变化 |
+|---|---|---|
+| GPT-5 / mini / nano | 2025-08-07 | GPT 与 o 系列能力合并，三档规模，可调推理强度 |
+| GPT-5 Pro | 2025-10-06 | 更多推理计算，Responses API |
+| GPT-5.1 / Codex / Codex-mini | 2025-11-13 | 默认 `none` 推理档，强化可控性与编码；12 月新增 Codex-max |
+| GPT-5.2 / Pro | 2025-12-11 | 新增 xhigh 推理档、压缩式上下文管理；多模态与前端代码增强 |
+| GPT-5.2-Codex | 2026-01-14 | 代码仓库级推理与智能体编程 |
+| GPT-5.3-Codex | 2026-02-24 | 进一步聚焦智能体编码；3 月发布 `gpt-5.3-chat-latest`（ChatGPT Instant） |
+| GPT-5.4 / Pro / mini / nano | 2026-03-05 起 | **100 万 token 上下文**、内置 computer use、工具检索、compaction |
+| GPT-5.5 / Pro | 2026-04-24 | 面向复杂专业工作，推理默认 medium，1M 上下文 |
+| GPT-5.6 Sol / Terra / Luna | 2026-06-26 有限预览；**2026-07-09 公开发布** | 旗舰 Sol、均衡 Terra、低成本 Luna；约 105 万 token 上下文；新增 max 推理档、Programmatic Tool Calling、多智能体编排 |
+
+截至 2026 年 8 月，**GPT-5.6 Sol 是 OpenAI 的前沿旗舰模型**；2026 年 8 月还发布了 Daybreak Blue/Red 安全评估入口与 GPT-5.6 Cyber 等网络安全专用模型，并预览 Ultrafast 高速推理模式。
+
+---
+
+## 三、o 系列推理模型
+
+o 系列的核心思想是：**让模型在回答前“思考”更久**，通过强化学习训练长思维链（chain-of-thought），以推理时间换质量。
+
+- **o1-preview / o1-mini（2024 年 9 月 12 日）**：首批推理模型。o1-preview 面向数学、科学、编程等复杂问题；o1-mini 更快、更便宜，但知识面更窄。
+- **o1 正式版（2024 年 12 月 5 日，ChatGPT；API 于 12 月 17 日发布）**：支持图像输入、20 万 token 上下文。同日发布 ChatGPT Pro 订阅与更高计算量的 o1-pro 版本。
+- **o1-pro API（2025 年 3 月 19 日）**：定价 $150/百万输入、$600/百万输出，成为当时最贵的 API 模型之一。
+- **o3 预告（2024 年 12 月 20 日）**：OpenAI 公布 o3 与 o3-mini 基准测试结果，面向安全研究者开放早期测试。
+- **o3-mini（2025 年 1 月 31 日）**：低/中/高三档推理强度，免费用户也可使用中档；是“小模型 + 推理”的标志产品。
+- **Deep Research（2025 年 2 月）**：ChatGPT 中基于 o3 的深度研究功能，可自动检索并生成研究报告。
+- **o3 / o4-mini（2025 年 4 月 16 日）**：o 系列第一次完整支持**视觉推理与智能体工具调用**，能“边看图边思考”，并自动组合网页搜索、Python 分析、图像生成等工具。同日发布开源 **Codex CLI**。
+- **o3-pro（2025 年 6 月 10 日）**：o3 的高计算量版本。
+- **o3-deep-research / o4-mini-deep-research（2025 年 6 月 24 日）**：深度研究变体进入 API。
+
+**后续走向**：o1-preview/o1-mini 已于 2025 年 7—10 月退役；o3 在 ChatGPT 中计划于 2026 年 8 月退役，API 中的 o3/o3-pro 快照计划 2026 年 12 月关闭。o 系列的核心能力（可调推理强度、视觉思维链、工具使用）已整体并入 GPT-5.x 体系。
+
+---
+
+## 四、多模态产品线
+
+### 4.1 视觉理解
+
+- **CLIP（2021 年 1 月 5 日）**：与 DALL·E 同日发布。CLIP 通过大规模图文对比学习实现零样本图像分类，后来成为 DALL·E 2、Stable Diffusion 等生成模型的视觉语义基础。
+- **GPT-4 视觉输入（2023 年 3 月）**：GPT-4 技术报告首次展示图像理解能力；2023 年 9 月 ChatGPT 开放“看、听、说”多模态交互。
+- **GPT-4V API（2023 年 11 月）**：DevDay 发布 `gpt-4-vision-preview`，2024 年 4 月视觉能力并入 `gpt-4-turbo`。
+- **GPT-4o（2024 年 5 月）**：视觉、文本、音频由同一网络处理，视觉理解成本与速度明显改善。
+- **o3/o4-mini（2025 年 4 月）**：图像直接进入思维链，可对图片进行旋转、缩放、裁剪等操作后继续推理。
+- **GPT-5.x（2025—2026）**：主流模型普遍支持图像输入；GPT-5.6 进一步支持按原始分辨率或自动分辨率处理图片。
+
+### 4.2 图像生成
+
+- **DALL·E（2021 年 1 月 5 日）**：基于 GPT-3 的 120 亿参数自回归 Transformer + 离散 VAE，生成 256×256 图像。
+- **DALL·E 2（2022 年 4 月 6 日）**：改用 **CLIP 条件扩散模型**，分辨率与真实感显著提高；2022 年 7 月进入百万用户 beta，9 月取消候补，11 月进入 API。
+- **DALL·E 3（2023 年 9—11 月）**：2023 年 9 月发布，10 月原生集成进 ChatGPT，11 月 DevDay 进入 API。其最大改进是**复杂提示遵循和画面内文字渲染**。
+- **GPT Image 1（2025 年 3 月 ChatGPT / 4 月 23 日 API）**：基于 GPT-4o 的原生多模态图像模型，不再使用“扩散模型 + 文本编码器”的流水线，指令遵循、图文排版和连续编辑能力大幅提升。
+- **GPT Image 1 mini（2025 年 10 月 6 日）**：低成本图像生成/编辑。
+- **GPT Image 1.5（2025 年 12 月 16 日）**：改进指令遵循与高保真编辑。
+- **GPT Image 2（2026 年 4 月 21 日）**：当前最先进的图像生成与编辑模型，支持灵活尺寸、高保真输入和 Batch API。
+- **DALL·E 时代结束**：`dall-e-2`/`dall-e-3` 于 2026 年 5 月 12 日从 API 移除；旧版 GPT Image 快照计划于 2026 年 12 月退役。
+
+### 4.3 视频生成（Sora）
+
+- **Sora 预览（2024 年 2 月 15 日）**：首次展示文本生成高清视频。
+- **Sora 公开版（2024 年 12 月）**：面向 ChatGPT Plus/Pro 用户开放。
+- **Sora 2（2025 年 9 月底应用；2025 年 10 月 6 日 API）**：支持**带同步音频**的视频生成、重混与编辑，API 提供 `sora-2` 与 `sora-2-pro`。
+- **Sora 关停（2026 年）**：应用于 2026 年 4 月 26 日关闭，Videos API 计划于 2026 年 9 月 24 日关闭。
+
+---
+
+## 五、语音与音频产品线
+
+- **Whisper（2022 年 9 月 21 日）**：开源语音识别模型，基于 68 万小时弱监督语音数据训练，支持多语种转录、翻译和语言识别。2022 年 12 月发布 large-v2，2023 年 11 月发布 large-v3。
+- **Whisper API（2023 年 3 月 1 日）**：以 `whisper-1` 提供 large-v2 托管服务，价格 $0.006/分钟。
+- **TTS API（2023 年 11 月 6 日）**：发布 `tts-1`（低延迟）与 `tts-1-hd`（高质量）两种语音合成模型。
+- **GPT-4o 原生音频（2024 年 5 月）**：单个网络直接建模语音，ChatGPT Advanced Voice Mode 于 2024 年 9 月广泛上线。
+- **Realtime API beta（2024 年 10 月 1 日）**：WebSocket 实时语音交互；10 月 17 日发布 `gpt-4o-audio-preview`，让 Chat Completions 支持音频输入/输出。
+- **新一代转录与 TTS（2025 年 3 月 20 日）**：发布 `gpt-4o-transcribe`、`gpt-4o-mini-transcribe`、`gpt-4o-mini-tts`，在词错率、口音和情感控制上优于 Whisper/TTS-1。
+- **Realtime API GA（2025 年 8 月 28 日）**：发布 `gpt-realtime` 与 `gpt-audio`；10 月发布 mini 版本；12 月更新四个音频快照并支持定制声音。
+- **1.5/2.x 迭代（2026 年）**：
+  - 2026 年 2 月 23 日：`gpt-realtime-1.5`、`gpt-audio-1.5`。
+  - 2026 年 5 月 7 日：**GPT-Realtime-2**（可调推理的语音到语音模型）、`gpt-realtime-translate`（流式语音翻译）、`gpt-realtime-whisper`（流式转写）。
+  - 2026 年 7 月 6 日：GPT-Realtime-2.1 与 2.1-mini。
+  - 2026 年 7 月 28 日：`gpt-transcribe`（高精度文件转写）与 `gpt-live-transcribe`（低延迟流式转写）。
+
+---
+
+## 六、嵌入（Embeddings）与文本处理
+
+- **第一代嵌入模型（2022 年 1 月）**：`/embeddings` 端点上线，提供 text-similarity、text-search、code-search 三族模型（ada/babbage/curie/davinci 档位），用于相似度、检索和代码搜索。
+- **text-embedding-ada-002（2022 年 12 月 15 日）**：统一第一代三类模型，**1536 维**，价格 $0.0001/1K token，成为 RAG 与向量检索事实标准。
+- **text-embedding-3-small / 3-large（2024 年 1 月）**：新一代嵌入模型，large 最高 **3072 维**；原生支持 `dimensions` 参数缩短向量。small 价格 $0.02/百万 token，large $0.13/百万 token。第一代嵌入模型于 2024 年 1 月 4 日退役。
+- **内容审核模型**：文本审核长期使用 `text-moderation-latest`；2024 年 9 月 26 日发布 `omni-moderation-latest`，支持文本与部分图像类别审核；旧文本审核模型于 2025 年 10 月退役。
+
+截至 2026 年 8 月，`text-embedding-3-small/large` 仍是 API 中标准嵌入模型。
+
+---
+
+## 七、API 产品线的演进
+
+### 7.1 文本 API：从 Completions 到 Responses
+
+- **2020—2022 年**：以 `/v1/completions` 和 `ada/babbage/curie/davinci` 基础模型为主，配套 search、answers、classifications 等旧端点（这些端点于 2022 年底关闭）。
+- **2023 年 3 月**：`gpt-3.5-turbo` + **Chat Completions API** 成为主线；6 月加入函数调用；7 月 GPT-4 API GA。
+- **2023 年 11 月 DevDay**：GPT-4 Turbo、GPT-4V、DALL·E 3 API、TTS API、**Assistants API**、GPT-4 微调实验版一并发布。
+- **2024 年**：Structured Outputs、GPT-4o 微调、模型蒸馏、提示缓存、Evals、**Realtime API beta** 等相继上线。
+- **2025 年 3 月 11 日**：发布 **Responses API**、**Agents SDK**，以及内置工具：网页搜索、文件搜索、computer use。这是 API 从“单轮模型调用”转向“智能体工作流”的关键节点。
+- **2025 年 8 月**：Realtime API GA、**Conversations API** 发布；Assistants API 宣布于 2026 年 8 月 26 日退役，由 Responses API 接替。
+- **2026 年**：WebSocket Responses、Skills、Hosted Shell、原生 compaction、MCP 工具、多智能体编排、Programmatic Tool Calling、GPT-5.6 等继续向智能体基础设施演进。
+
+### 7.2 微调与定制
+
+- 早期：GPT-3 基础模型微调（2021 年 12 月起）。
+- 2023 年 8 月：`gpt-3.5-turbo` 微调全面开放。
+- 2024 年 8 月：GPT-4o 微调 GA；10 月开放**蒸馏**与**图像微调**；12 月加入 DPO 偏好微调。
+- 2025 年 4—6 月：GPT-4.1 系列监督微调、**强化微调（RFT）**、o4-mini 微调等相继开放。
+- 2026 年：自托管微调平台开始收缩，计划于 2027 年 1 月停止新建任务，整体策略转向更统一的模型优化工具链。
+
+### 7.3 Codex：从“代码模型”到“编程智能体产品”
+
+- 2021 年 8 月：**OpenAI Codex 模型**，驱动 GitHub Copilot。
+- 2023 年 3 月：旧 Codex API 模型退役，代码能力并入 GPT-3.5/GPT-4。
+- 2025 年 4 月 16 日：开源 **Codex CLI**；随后 `codex-mini-latest`、`gpt-5-codex`、`gpt-5.1-codex(-max/mini)`、`gpt-5.2-codex`、`gpt-5.3-codex` 相继发布。
+- 2025—2026 年：Codex 扩展为 CLI、IDE、云端、CI/CD 自动化与 MCP 工具生态，GPT-5.6 则是其当前基础模型之一。
+
+### 7.4 当前格局与退役节奏
+
+- **当前主推**：GPT-5.6 Sol（前沿）、Terra（均衡）、Luna（低成本）；GPT-5.5/5.4 仍可用于生产；GPT-5.6 Cyber 面向授权安全场景。
+- **已/将关闭的旧节点**：DALL·E 2/3 API（2026 年 5 月）、Sora 应用与 API（2026 年 4—9 月）、Assistants API（2026 年 8 月 26 日）、一批 GPT-3.5/GPT-4/GPT-4 Turbo/o1/o3-mini 旧快照（2026 年 10 月 23 日）、旧版语音/实时模型（2027 年 1 月 20 日）。
+
+---
+
+## 八、关键节点速查表
+
+| 时间 | 事件 |
+|---|---|
+| 2018-06 | GPT-1 论文发布，117M 参数 |
+| 2019-02 / 2019-11 | GPT-2 发布与完整开源 |
+| 2020-05 / 2020-06 | GPT-3 论文发布；OpenAI API 私测上线 |
+| 2021-01 | DALL·E 与 CLIP 发布 |
+| 2021-08 | OpenAI Codex 模型发布 |
+| 2022-01 | InstructGPT 成为默认 API 模型；第一代嵌入模型 |
+| 2022-09 / 2022-12 | Whisper 开源；text-embedding-ada-002 |
+| 2022-11-30 | ChatGPT 发布（GPT-3.5） |
+| 2023-03-01 | gpt-3.5-turbo 与 Whisper API |
+| 2023-03-14 | GPT-4 发布（图像+文本输入） |
+| 2023-07 | GPT-4 API 全面开放 |
+| 2023-11-06 | DevDay：GPT-4 Turbo、GPT-4V、DALL·E 3 API、TTS、Assistants API |
+| 2024-01 | text-embedding-3-small/large |
+| 2024-02 | Sora 首次预览 |
+| 2024-05-13 | GPT-4o 发布 |
+| 2024-07-18 | GPT-4o mini 发布 |
+| 2024-09-12 | o1-preview / o1-mini 发布 |
+| 2024-10-01 | Realtime API beta |
+| 2024-12 | o1 正式版；Sora 公开；ChatGPT Pro |
+| 2025-01-31 | o3-mini 发布 |
+| 2025-02-27 | GPT-4.5 预览发布 |
+| 2025-03-11 | Responses API、Agents SDK、内置工具 |
+| 2025-04-14 / 04-16 | GPT-4.1 家族；o3 / o4-mini；Codex CLI |
+| 2025-04-23 | GPT Image 1 进入 API |
+| 2025-06-10 / 06-24 | o3-pro；深度研究变体 API |
+| 2025-08-05 / 08-07 | GPT-OSS 开源；GPT-5 发布 |
+| 2025-08-28 | Realtime API GA：gpt-realtime / gpt-audio |
+| 2025-09-30 / 10-06 | Sora 2；DevDay：GPT-5 Pro、GPT Image 1 mini、Videos API |
+| 2025-11-13 | GPT-5.1 及 Codex 变体 |
+| 2025-12-11 / 12-16 | GPT-5.2 / Pro；GPT Image 1.5 |
+| 2026-02 / 03 | GPT-5.3-Codex；GPT-5.4 家族（1M 上下文、computer use） |
+| 2026-04-21 / 04-24 | GPT Image 2；GPT-5.5 / Pro |
+| 2026-05 | GPT-Realtime-2；DALL·E API 移除 |
+| 2026-06-26 / 07-09 | GPT-5.6 有限预览与公开发布（Sol/Terra/Luna） |
+| 2026-07 | GPT-Realtime-2.1；GPT Transcribe / Live Transcribe |
+| 2026-08 | Daybreak 与 GPT-5.6 Cyber；Ultrafast 模式预览 |
+
+---
+
+## 九、主要参考来源
+
+- OpenAI Developers 文档：Models、Changelog、Deprecations（`developers.openai.com/api/docs/models` 等）
+- OpenAI 官方发布页：GPT-4、GPT-4o、GPT-5、GPT-5.1—GPT-5.6、o1、o3/o4-mini、GPT Image、Sora、Whisper、Realtime API 等公告
+- 论文：Radford et al., *Improving Language Understanding by Generative Pre-Training*（2018）；Radford et al., *Language Models are Unsupervised Multitask Learners*（2019）；Brown et al., *Language Models are Few-Shot Learners*（2020）；Ouyang et al., *Training language models to follow instructions with human feedback*（2022）；Radford et al., *Learning Transferable Visual Models From Natural Language Supervision*（CLIP，2021）；Ramesh et al., DALL·E / DALL·E 2；Radford et al., *Robust Speech Recognition via Large-Scale Weak Supervision*（Whisper，2022）；OpenAI, *GPT-4 Technical Report*（2023）
+- 维基百科词条：GPT-1、GPT-2、GPT-3、GPT-4、GPT-4o、GPT-5、OpenAI o1、OpenAI o3、DALL-E、Whisper、Sora、ChatGPT 等（用于交叉核对日期）

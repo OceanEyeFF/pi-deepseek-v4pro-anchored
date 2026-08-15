@@ -1,0 +1,11 @@
+node_modules/
+.pi/
+.npm/
+*.tgz
+npm-debug.log*
+
+# Local research inputs and raw session traces are intentionally retained on
+# the author's machine but excluded from the public source repository.
+exp/work/
+exp/sessions/
+exp/work-*/

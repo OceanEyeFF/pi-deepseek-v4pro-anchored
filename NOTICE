@@ -1,0 +1,10 @@
+# Notice
+
+This package is an independent Pi extension implementation informed by:
+
+- `xiaobright/dsh-anchored-standard` — the tool-schema anchoring hypothesis and experimental design, referenced in `dsh-plugin/dsh-anchored.ts`.
+- `deepseek-ai/deepseek-harness` — the DSH minimal-preset behaviour that the extension maps to Pi.
+- `earendil-works/pi` — the Pi extension and package APIs used by this package.
+
+The upstream DSH material is cited for attribution and research context. This
+package is not affiliated with or endorsed by DeepSeek AI or Earendil Works.

@@ -1,0 +1,27 @@
+任务完成。综述已保存至：
+
+**`G:\软件合集\MTool - Local\Tool\exp\work\openai_model_history.md`**（228 行，约 11.8 KB）
+
+## 完成情况
+
+**检索核实过程**：进行了 5 轮共 20 次定向检索，交叉核对了 OpenAI 官方发布页、Help Center「Model Release Notes」、开发者文档弃用清单及 TechCrunch/Ars Technica 等媒体报道（维基百科和 OpenAI 官网直连被网络策略屏蔽，改用搜索摘要渠道核实）。检索中发现了多个关键修正点，例如：
+
+- **GPT-5 Pro 是 2025-10-06 上 API**（而非坊间误传的 9 月）
+- 2026 年新增了 **GPT-5.2（2025-12-11）→ 5.3-Codex/Instant → 5.4 → 5.5 → 5.6（2026-07-09，Sol/Terra/Luna 三层家族）** 一整套快速迭代节点
+- **gpt-image-2（2026-04-21）**："会推理的图像模型"，支持联网搜索、多语言文字渲染、4K 输出
+- 确认 **o 系列无 o5**，推理能力已并入 GPT-5.x 家族
+
+## 综述结构
+
+| 章节 | 内容 |
+|---|---|
+| 大事年表 | 2018-06 至 2026-07 共 40 个关键节点一览表 |
+| GPT 系列 | GPT-1 → GPT-5.6 完整谱系，含参数规模、上下文演进、定价策略、gpt-oss 开放权重 |
+| o 系列推理 | o1-preview → o3-pro 全史，思维链/测试时计算/ARC-AGI 成绩 |
+| 多模态 | 视觉理解（CLIP→GPT-4V→o4-mini）、图像生成三代 DALL·E + 三代 gpt-image、视频 Sora→Sora 2 |
+| 语音 | Whisper 版本演进（large-v2→v3→turbo）、TTS、Advanced Voice Mode、Realtime API/gpt-realtime |
+| 嵌入及其它 | 嵌入三代演进（含 Matryoshka 技术）、Codex、审核模型 |
+| API 产品线 | Completions→Responses 接口代际与完整退役时间线（截至 2026-10-23） |
+| 结语 | 八年三条主线：从「更大」到「更会想」、单模态到全模态、模型公司到平台公司 |
+
+如需进一步调整（如增补每个模型的基准测试成绩、API 定价明细表，或导出 PDF 版），告诉我即可。
