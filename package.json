@@ -1,7 +1,7 @@
 {
   "name": "pi-deepseek-v4pro-anchored",
-  "version": "0.1.0",
-  "description": "A Pi package that applies a DSH-style C2 tool-schema workflow for DeepSeek V4 Pro.",
+  "version": "0.1.1",
+  "description": "A Pi package with a progressive, anchored tool workflow for DeepSeek V4 Pro.",
   "type": "module",
   "license": "MIT",
   "author": "pi-deepseek-v4pro-anchored contributors",
@@ -20,7 +20,8 @@
     "deepseek",
     "deepseek-v4-pro",
     "agent-harness",
-    "dsh"
+    "dsh",
+    "progressive-tools"
   ],
   "files": [
     "dsh-plugin/index.ts",
@@ -28,6 +29,7 @@
     "dsh-plugin/dsh-toggle.ts",
     "!dsh-plugin/README.md",
     "README.md",
+    "README.zh-CN.md",
     "CHANGELOG.md",
     "LICENSE",
     "NOTICE"

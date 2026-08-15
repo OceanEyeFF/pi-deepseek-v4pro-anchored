@@ -281,7 +281,7 @@ console.assert(a5.sent.length === 0 && a5.active.includes("dev_tool_search"), "p
 
 rmSync(skillWork, { recursive: true, force: true });
 
-// ── 9. dsh-c2: C2 工作模式插件 ──
+// ── 9. dsh-c2: legacy C2 experiment preset / 旧版 C2 实验预设 ──
 const c2Mod = await jiti.import(join(PLUGIN_DIR, "dsh-c2.ts"));
 const c2Factory = c2Mod.default;
 
@@ -305,7 +305,7 @@ function loadC2(env) {
 	return { handlers, tools, active, sent, pi };
 }
 
-// 9a. 静默晋升: 工厂强制 PROMOTE_HINT=0, 晋升后不发任何消息
+// 9a. 静默晋升 / silent promotion：工厂强制 PROMOTE_HINT=0，晋升后不发任何消息
 const zc1 = loadC2({});
 console.assert(process.env.DSH_ANCHOR_PROMOTE_HINT === "0", "c2 forces silent promotion");
 console.assert(zc1.tools.bash && zc1.tools.str_replace_editor && zc1.tools.dev_tool_search && zc1.tools.skill_search && zc1.tools.skill_load, "c2 mounts anchored mechanisms");
@@ -315,7 +315,7 @@ zc1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromp
 zc1.handlers.turn_end[0]({ message: { role: "assistant" } }, ectx([]));
 console.assert(zc1.active.includes("dev_tool_search") && zc1.sent.length === 0, "c2 silent promotion: resident set, no message");
 
-// 9b. 锚定轮拦截: interactive + fresh → handled + 锚定消息 + followUp
+// 9b. 锚定轮拦截 / anchor interception: interactive + fresh → handled + 锚定消息 + followUp
 const zc2 = loadC2({});
 const zinp = zc2.handlers.input[0];
 const zq1 = zinp({ text: "做任务", source: "interactive", images: [{ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAA" } }] }, ectx([]));
@@ -323,6 +323,14 @@ console.assert(zq1?.action === "handled" && zc2.sent.length === 2, "c2 anchor in
 console.assert(zc2.sent[0].kind === "user" && zc2.sent[0].msg.includes("介绍一下你自己"), "c2 anchor text");
 console.assert(zc2.sent[1].opts?.deliverAs === "followUp" && zc2.sent[1].msg[0].text === "做任务" && zc2.sent[1].msg[1].type === "image", "c2 followUp with images");
 console.assert(JSON.stringify(zc2.active) === JSON.stringify(["bash", "str_replace_editor"]), "c2 anchor keeps minimal catalog");
+
+// 9b-1. 新名称 DSH_ANCHOR_TEXT 优先；旧名称继续可用
+const zcText = loadC2({ DSH_ANCHOR_TEXT: "渐进模式锚定文案" });
+zcText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
+console.assert(zcText.sent[0].msg === "渐进模式锚定文案", "progressive anchor text");
+const zcLegacyText = loadC2({ DSH_C2_ANCHOR_TEXT: "legacy anchor text" });
+zcLegacyText.handlers.input[0]({ text: "做任务", source: "interactive" }, ectx([]));
+console.assert(zcLegacyText.sent[0].msg === "legacy anchor text", "legacy C2 anchor text alias");
 
 // 9c. 非 fresh / rpc / 斜杠命令 → 不锚定
 const zq2 = zinp({ text: "第二条", source: "interactive" }, ectx([
@@ -340,7 +348,7 @@ console.assert((zc3.handlers.input ?? []).length === 1, "c2 yields to zero/whoam
 
 console.log("\nALL SMOKE TESTS PASSED");
 
-// ── 10. dsh-toggle: {关, C2} 切换（需与 anchored 并排加载）──
+// ── 10. dsh-toggle: {关闭 / Off, 渐进 / Progressive} 切换（需与 anchored 并排加载）──
 const toggleMod = await jiti.import(join(PLUGIN_DIR, "dsh-toggle.ts"));
 const toggleFactory = toggleMod.default;
 
@@ -372,6 +380,7 @@ const tctx = (branch = []) => ({ sessionManager: { getSessionId: () => "s10", ge
 
 const t1 = loadToggle({});
 console.assert(t1.commands["dsh-mode"] && t1.commands["dsh"], "toggle commands registered");
+console.assert(t1.commands["dsh-mode"].description.includes("渐进") && t1.commands["dsh-mode"].description.includes("Progressive"), "bilingual progressive command description");
 t1.handlers.session_start[0]({ reason: "startup" }, tctx([]));
 console.assert(t1.active.length === 0, "off: session_start no-op");
 const offB = t1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromptOptions: { skills: [], contextFiles: [] } });
@@ -381,15 +390,15 @@ console.assert(t1.active.length === 0, "off: no promotion");
 const offIn = t1.handlers.input[0]({ text: "任务", source: "interactive" }, tctx([]));
 console.assert(offIn === undefined && t1.sent.length === 0, "off: no anchor");
 
-// 10b. 切 c2: 锚定轮 + persona 替换生效
-await t1.commands["dsh-mode"].handler("c2", { ui: { notify: (m) => t1.notified.push(m) } });
-console.assert(t1.notified.at(-1).includes("C2"), "notify c2");
+// 10b. 切 progressive：锚定轮 + persona 替换生效
+await t1.commands["dsh-mode"].handler("progressive", { ui: { notify: (m) => t1.notified.push(m) } });
+console.assert(t1.notified.at(-1).includes("渐进") && t1.notified.at(-1).includes("Progressive"), "notify progressive");
 const onIn = t1.handlers.input[0]({ text: "任务", source: "interactive" }, tctx([]));
-console.assert(onIn?.action === "handled" && t1.sent.length === 2 && t1.sent[0].msg.includes("介绍一下你自己") && t1.sent[1].opts?.deliverAs === "followUp", "c2: anchor intercept");
+console.assert(onIn?.action === "handled" && t1.sent.length === 2 && t1.sent[0].msg.includes("介绍一下你自己") && t1.sent[1].opts?.deliverAs === "followUp", "progressive: anchor intercept");
 const onB = t1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromptOptions: { skills: [], contextFiles: [] } });
-console.assert(onB?.systemPrompt === "You are a helpful software engineer assistant.", "c2: persona active");
+console.assert(onB?.systemPrompt === "You are a helpful software engineer assistant.", "progressive: persona active");
 t1.handlers.turn_end[0]({ message: { role: "assistant" } }, tctx([]));
-console.assert(t1.active.includes("dev_tool_search") && t1.sent.length === 2, "c2: silent promotion (no extra messages)");
+console.assert(t1.active.includes("dev_tool_search") && t1.sent.length === 2, "progressive: silent promotion (no extra messages)");
 
 // 10c. 切 off: 恢复全部工具, persona 回到原生
 await t1.commands["dsh"].handler("off", { ui: { notify: (m) => t1.notified.push(m) } });
@@ -397,19 +406,28 @@ console.assert(t1.active.length === Object.keys(t1.tools).length && t1.active.in
 const offB2 = t1.handlers.before_agent_start[0]({ prompt: "x", systemPrompt: "L", systemPromptOptions: { skills: [], contextFiles: [] } });
 console.assert(offB2 === undefined, "off again: persona untouched");
 
-// 10d. 无参查询
-await t1.commands["dsh-mode"].handler("", { ui: { notify: (m) => t1.notified.push(m) } });
-console.assert(t1.notified.at(-1).includes("当前 DSH 模式"), "status query");
+// 10d. c2 is a legacy alias for progressive / c2 是渐进模式的旧版别名
+await t1.commands["dsh"].handler("c2", { ui: { notify: (m) => t1.notified.push(m) } });
+console.assert(t1.notified.at(-1).includes("渐进") && t1.notified.at(-1).includes("Progressive"), "legacy c2 alias");
 
-// 10e. DSH_MODE=c2 环境变量: 启动即 C2
-const t2 = loadToggle({ DSH_MODE: "c2" });
+// 10e. 无参查询
+await t1.commands["dsh-mode"].handler("", { ui: { notify: (m) => t1.notified.push(m) } });
+console.assert(t1.notified.at(-1).includes("当前 DSH 模式") && t1.notified.at(-1).includes("Current DSH mode"), "bilingual status query");
+
+// 10f. DSH_MODE=progressive 环境变量：启动即渐进模式
+const t2 = loadToggle({ DSH_MODE: "progressive" });
 t2.handlers.session_start[0]({ reason: "startup" }, tctx([]));
-console.assert(JSON.stringify(t2.active) === JSON.stringify(["bash", "str_replace_editor"]), "env c2: bootstrap active at session start");
+console.assert(JSON.stringify(t2.active) === JSON.stringify(["bash", "str_replace_editor"]), "env progressive: bootstrap active at session start");
+
+// 10g. DSH_MODE=c2 remains a backward-compatible environment alias
+const t3 = loadToggle({ DSH_MODE: "c2" });
+t3.handlers.session_start[0]({ reason: "startup" }, tctx([]));
+console.assert(JSON.stringify(t3.active) === JSON.stringify(["bash", "str_replace_editor"]), "legacy env c2: bootstrap active at session start");
 
 // 收尾: 门控复原, 避免影响其它测试/后续
 setAnchoredEnabled(true);
 
-// ── 11. npm 包入口: 默认 C2，同时支持 DSH_MODE=off ──────────────────────
+// ── 11. npm 包入口: 默认渐进模式 / Progressive mode，同时支持 DSH_MODE=off ──
 const packageMod = await jiti.import(join(PLUGIN_DIR, "index.ts"));
 const packageFactory = packageMod.default;
 
@@ -437,14 +455,18 @@ function loadPackage(env) {
 
 const packageCtx = (branch = []) => ({ sessionManager: { getSessionId: () => "s11", getBranch: () => branch }, isIdle: () => false });
 const packageEnabled = loadPackage({});
-console.assert(process.env.DSH_MODE === "c2", "package defaults to C2");
+console.assert(process.env.DSH_MODE === "progressive", "package defaults to Progressive mode");
 console.assert(packageEnabled.commands["dsh-mode"] && packageEnabled.commands.dsh, "package registers mode commands");
 packageEnabled.handlers.session_start[0]({ reason: "startup" }, packageCtx([]));
-console.assert(JSON.stringify(packageEnabled.active) === JSON.stringify(["bash", "str_replace_editor"]), "package C2 bootstrap:", packageEnabled.active);
+console.assert(JSON.stringify(packageEnabled.active) === JSON.stringify(["bash", "str_replace_editor"]), "package Progressive bootstrap:", packageEnabled.active);
 
 const packageDisabled = loadPackage({ DSH_MODE: "off" });
 packageDisabled.handlers.session_start[0]({ reason: "startup" }, packageCtx([]));
 console.assert(packageDisabled.active.length === 0, "package respects DSH_MODE=off");
+
+const packageLegacy = loadPackage({ DSH_MODE: "c2" });
+packageLegacy.handlers.session_start[0]({ reason: "startup" }, packageCtx([]));
+console.assert(JSON.stringify(packageLegacy.active) === JSON.stringify(["bash", "str_replace_editor"]), "package accepts legacy DSH_MODE=c2");
 
 setAnchoredEnabled(true);
 console.log("\nALL SMOKE TESTS PASSED (incl. toggle and package entry)");

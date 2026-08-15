@@ -54,7 +54,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 运行时开关（dsh-toggle 插件用它做 {关, C2} 切换；独立使用时默认开启）
+// Runtime gate / 运行时开关：dsh-toggle 用它在 {关闭 / Off, 渐进 / Progressive}
+// 之间切换；独立加载时默认启用。 / Standalone use defaults to enabled.
 // ─────────────────────────────────────────────────────────────────────────────
 let anchoredEnabled = true;
 
@@ -288,9 +289,10 @@ export default function (pi: ExtensionAPI) {
 		.split(",")
 		.map((s) => s.trim())
 		.filter(Boolean);
-	// 晋升通告: 晋升时以独立消息注入"新工具已可用" (D2 实验验证该机制有效;
-	// DSH_ANCHOR_PROMOTE_HINT=0 关闭)。运行时每次 promote 时读 env,
-	// 这样 dsh-toggle 在运行中切到 c2 也能生效。
+	// Promotion notice / 晋升通告：以独立消息提示“新工具已可用”（D2 实验验证有效；
+	// DSH_ANCHOR_PROMOTE_HINT=0 关闭）。The value is read on every promotion, so
+	// switching Progressive mode at runtime also takes effect. / 每次晋升时读取该值，
+	// 因此运行中切换渐进模式也能生效。
 	const hintEnabled = () => (process.env.DSH_ANCHOR_PROMOTE_HINT ?? "1").trim() !== "0";
 	const DSH_TIMEOUT_SECONDS = 300;
 
@@ -812,19 +814,35 @@ export default function (pi: ExtensionAPI) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// C2 锚定轮拦截 (dsh-c2 / dsh-toggle 共用): 首条真实输入前插入 minimal 目录锚定轮,
-// 真实消息 followUp 到下一轮 (轮边界 + 静默晋升 = C2 机制)。
+// Progressive-mode anchor interception / 渐进模式锚定轮拦截（供 dsh-toggle 使用）：
+// 在首条真实输入前插入 minimal 目录锚定轮，再把真实消息作为 followUp 发送到下一轮。
+// The experiment called this sequence “C2”; that label is retained only for
+// compatibility. / 实验曾将该序列记为“C2”；该名称仅为兼容保留。
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** C2 锚定轮默认文案 (与实验组 C2 的 round1.txt 一致)。 */
-export const C2_ANCHOR_TEXT =
-	(process.env.DSH_C2_ANCHOR_TEXT ?? "请简单介绍一下你自己，以及你当前可用的工具。").trim();
+/** Default progressive-mode anchor text / 渐进模式默认锚定轮文案。 */
+export const DEFAULT_PROGRESSIVE_ANCHOR_TEXT = "请简单介绍一下你自己，以及你当前可用的工具。";
 
 /**
- * 注册 C2 锚定轮拦截。`isEnabled` 返回 false 时放行 (dsh-toggle 用它做开关)。
- * 与 DSH_ANCHOR_TURN=zero|whoami 互斥: 非 none 时不注册。
+ * Resolve the progressive anchor text / 获取渐进模式锚定轮文案。
+ * DSH_C2_ANCHOR_TEXT remains a backward-compatible fallback.
+ * DSH_C2_ANCHOR_TEXT 保留为向后兼容的备用变量。
  */
-export function registerC2Anchor(pi: ExtensionAPI, isEnabled: () => boolean = () => true) {
+export function getProgressiveAnchorText(): string {
+	return (process.env.DSH_ANCHOR_TEXT ?? process.env.DSH_C2_ANCHOR_TEXT ?? DEFAULT_PROGRESSIVE_ANCHOR_TEXT).trim();
+}
+
+/** @deprecated Use getProgressiveAnchorText() / 请改用 getProgressiveAnchorText()。 */
+export const C2_ANCHOR_TEXT = getProgressiveAnchorText();
+
+/**
+ * Register progressive-mode anchor interception / 注册渐进模式锚定轮拦截。
+ * `isEnabled` returning false passes input through; dsh-toggle uses it as its gate.
+ * `isEnabled` 返回 false 时放行输入，dsh-toggle 用它作为开关门控。
+ * This is mutually exclusive with DSH_ANCHOR_TURN=zero|whoami.
+ * 它与 DSH_ANCHOR_TURN=zero|whoami 互斥：非 none 时不注册。
+ */
+export function registerProgressiveAnchor(pi: ExtensionAPI, isEnabled: () => boolean = () => true) {
 	const anchorTurn = (process.env.DSH_ANCHOR_TURN ?? "none").trim().toLowerCase();
 	if (anchorTurn !== "none" && anchorTurn !== "") return;
 
@@ -847,17 +865,18 @@ export function registerC2Anchor(pi: ExtensionAPI, isEnabled: () => boolean = ()
 		}
 		if (!fresh) return;
 
-		// 1) 锚定轮: 确保 minimal 目录 (bootstrap 已是会话默认, 显式再设一次防竞态)
+		// 1) Anchor turn / 锚定轮：确保 minimal 目录（bootstrap 已是会话默认，显式再设一次防竞态）。
 		try {
 			pi.setActiveTools(["bash", "str_replace_editor"]);
 		} catch {
 			/* bootstrap 已生效则无需处理 */
 		}
 
-		// 2) 先跑锚定轮 (真实 user 消息, 触发一轮 minimal 对话; 其首个回复即静默晋升)
-		pi.sendUserMessage(C2_ANCHOR_TEXT);
+		// 2) Run the anchor turn first / 先执行锚定轮：触发一轮 minimal 对话，首个回复后静默晋升。
+		pi.sendUserMessage(getProgressiveAnchorText());
 
-		// 3) 真实消息排队到下一轮: 保留图片附件, 任务在新轮边界 + 已扩展目录下执行
+		// 3) Queue the real task for the next turn / 将真实消息排队到下一轮：保留图片附件，
+		//    任务在新轮边界与已扩展目录下执行。
 		const content =
 			event.images && event.images.length > 0
 						? [{ type: "text" as const, text: event.text }, ...event.images]
@@ -868,3 +887,6 @@ export function registerC2Anchor(pi: ExtensionAPI, isEnabled: () => boolean = ()
 		return { action: "handled" };
 	});
 }
+
+/** @deprecated Use registerProgressiveAnchor() / 请改用 registerProgressiveAnchor()。 */
+export const registerC2Anchor = registerProgressiveAnchor;

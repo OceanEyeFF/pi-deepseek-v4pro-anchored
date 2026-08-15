@@ -1,5 +1,10 @@
 # DSH 极简模式 → Pi 复刻方案
 
+> **Package users / 包用户**：已发布包将原实验代号 **C2** 命名为
+> **渐进模式 / Progressive mode**。请优先阅读仓库根目录的
+> [English README](../README.md) 或 [中文 README](../README.zh-CN.md)，并使用
+> `/dsh-mode progressive|off`；`c2` 仅保留为旧版兼容别名。
+
 调研对象：`@deepseek-ai/dsh@0.1.0-rc.6`（deepseek-ai/deepseek-harness）与 Pi（`@earendil-works/pi-coding-agent`）。
 结论先行：DSH 极简模式的"初始环境"= **一句 system prompt + 两个工具 + cwd，其余全无**。Pi 侧用 4 个 API 即可 1:1 复刻，实现见 [`dsh-minimal.ts`](./dsh-minimal.ts)。
 
@@ -174,7 +179,7 @@ DSH_MINIMAL_KICKOFF="..." # 可选: 会话启动即喂入的第一条消息
 
 ---
 
-## 八、dsh-c2：C2 工作模式插件（实验验证的综合性价比最优）
+## 八、dsh-c2：旧版 C2 实验预设（发布包中称为“渐进模式 / Progressive mode”）
 
 基于 `../exp/REPORT.md` 的 C2 组结论（$0.047、309 行产出、接近基线成本），`dsh-c2.ts` 把 C2 模式做成即插即用插件：
 

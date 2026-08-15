@@ -6,6 +6,8 @@
 - **理论来源**：[`xiaobright/dsh-anchored-standard`](https://github.com/xiaobright/dsh-anchored-standard)（工具 schema 首轮锚定假说）与 [`deepseek-ai/deepseek-harness`](https://github.com/deepseek-ai/deepseek-harness) minimal preset
 - **复现产物**：`dsh-plugin/dsh-minimal.ts`、`dsh-plugin/dsh-anchored.ts`（Pi 扩展）、`exp/`（实验数据）
 
+> **命名说明 / Naming note**：本报告中的 **C2** 是实验组编号。已发布的 Pi 包将该面向用户的工作流称为 **渐进模式 / Progressive mode**；`c2` 仅保留为向后兼容别名。
+
 ---
 
 ## 摘要
