@@ -3,6 +3,7 @@
 ## 0.1.2 - 2026-08-16
 
 - Fixes the Progressive-mode first-turn race: Pi now transforms the initial input into the anchor turn and queues the original task only after the anchor agent run starts.
+- Keeps any attached images out of the anchor turn and with the queued original task.
 - Applies the same safe ordering to the optional zero/whoami anchor variants.
 - Adds /dsh-status with Chinese-English phase and active-tool diagnostics, plus documentation of the actual queueing behaviour.
 

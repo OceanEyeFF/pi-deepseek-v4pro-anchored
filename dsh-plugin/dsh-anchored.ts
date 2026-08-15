@@ -509,7 +509,9 @@ export default function (pi: ExtensionAPI) {
 			activate([]); // 零工具面
 			const state = stateFor(ctx);
 			state.pendingAnchorTask = { text: event.text, images: event.images ? [...event.images] : undefined };
-			return { action: "transform", text: anchorText! };
+			// An omitted images field would make Pi retain the original task attachments.
+			// 显式清空附件，确保图片只会随 followUp 的真实任务送达。
+			return { action: "transform", text: anchorText!, images: [] };
 		});
 
 		pi.on("agent_start", (_event, ctx) => {
@@ -922,7 +924,9 @@ export function registerProgressiveAnchor(pi: ExtensionAPI, isEnabled: () => boo
 		//    用 transform 让当前输入成为锚定轮。这样不会从一个 input 处理器并发发两条 prompt。
 		const state = stateFor(ctx);
 		state.pendingAnchorTask = { text: event.text, images: event.images ? [...event.images] : undefined };
-		return { action: "transform", text: getProgressiveAnchorText() };
+		// An omitted images field would make Pi retain the original task attachments.
+		// 显式清空附件，确保图片只会随 followUp 的真实任务送达。
+		return { action: "transform", text: getProgressiveAnchorText(), images: [] };
 	});
 
 	// 3) Queue only after Pi has started the transformed anchor / 仅在 Pi 已启动变换后的锚定轮后排队。

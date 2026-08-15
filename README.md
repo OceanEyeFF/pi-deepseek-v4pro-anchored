@@ -36,7 +36,7 @@ Configure your preferred Pi provider and select DeepSeek V4 Pro before starting 
 
 Progressive mode is enabled by default. The first ordinary interactive message is queued behind an anchor turn; slash commands, resumed sessions, RPC, and print-mode requests are not intercepted.
 
-The anchor itself travels through Pi's normal transformed-input path. Only after Pi reports that the anchor agent run has started does the extension queue the original task as a followUp. This intentionally avoids issuing two competing user-message requests from the same input event.
+The anchor itself travels through Pi's normal transformed-input path. Only after Pi reports that the anchor agent run has started does the extension queue the original task as a followUp. This intentionally avoids issuing two competing user-message requests from the same input event. Attached images are withheld from the anchor and retained for the original task.
 
 Runtime commands:
 

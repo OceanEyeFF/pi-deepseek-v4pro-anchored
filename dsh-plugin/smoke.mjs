@@ -252,11 +252,11 @@ console.assert(a3.active.includes("dev_tool_search"), "promoteOn=tool-call: tool
 // 8h. zero 锚定轮: 变换首条输入；agent_start 后才安全 followUp 真实任务
 const a4 = loadAnchored({ DSH_ANCHOR_TURN: "zero" });
 const inp = a4.handlers.input[0];
-const rIn = inp({ text: "做任务", source: "interactive" }, ectx([]));
-console.assert(rIn?.action === "transform" && rIn.text === "This round is a test. Tools are not open yet; all tools will open next round." && a4.active.length === 0, "anchor: transform + zero tools");
+const rIn = inp({ text: "做任务", source: "interactive", images: [{ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAA" } }] }, ectx([]));
+console.assert(rIn?.action === "transform" && rIn.text === "This round is a test. Tools are not open yet; all tools will open next round." && rIn.images?.length === 0 && a4.active.length === 0, "anchor: transform + zero tools");
 console.assert(a4.sent.length === 0, "anchor: no competing prompt is sent during input");
 a4.handlers.agent_start[0]({}, ectx([]));
-console.assert(a4.sent.length === 1 && a4.sent[0].opts?.deliverAs === "followUp" && a4.sent[0].msg === "做任务", "anchor: real task queued after agent start");
+console.assert(a4.sent.length === 1 && a4.sent[0].opts?.deliverAs === "followUp" && a4.sent[0].msg[0].text === "做任务" && a4.sent[0].msg[1].type === "image", "anchor: real task queued after agent start");
 const rIn2 = inp({ text: "二次消息", source: "interactive" }, ectx([
 	{ type: "message", id: "m1", message: { role: "user", content: [] } },
 ]));
@@ -322,7 +322,7 @@ console.assert(zc1.active.includes("dev_tool_search") && zc1.sent.length === 0, 
 const zc2 = loadC2({});
 const zinp = zc2.handlers.input[0];
 const zq1 = zinp({ text: "做任务", source: "interactive", images: [{ type: "image", source: { type: "base64", mediaType: "image/png", data: "AAA" } }] }, ectx([]));
-console.assert(zq1?.action === "transform" && zq1.text.includes("介绍一下你自己") && zc2.sent.length === 0, "c2 anchor transform");
+console.assert(zq1?.action === "transform" && zq1.text.includes("介绍一下你自己") && zq1.images?.length === 0 && zc2.sent.length === 0, "c2 anchor transform");
 console.assert(JSON.stringify(zc2.active) === JSON.stringify(["bash", "str_replace_editor"]), "c2 anchor keeps minimal catalog");
 zc2.handlers.agent_start[0]({}, ectx([]));
 console.assert(zc2.sent.length === 1 && zc2.sent[0].opts?.deliverAs === "followUp" && zc2.sent[0].msg[0].text === "做任务" && zc2.sent[0].msg[1].type === "image", "c2 followUp with images");
